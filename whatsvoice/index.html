@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Whats Voice</title>
+<style>
+  :root{--bg:#fff;--ink:#0B3D2E;--soft:#5b6b64;--gold:#C9A24A;--line:#e6e9e7;--card:#f6f8f7;--danger:#8a2d2d}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1512;--ink:#e8efeb;--soft:#9db0a6;--card:#16221d;--line:#24352e}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--line)}
+  header img{width:44px;height:44px;border-radius:12px}
+  header h1{font-size:20px;margin:0;letter-spacing:.2px}
+  header .cnt{margin-left:auto;font-size:14px;color:var(--soft)}
+  main{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;max-width:640px;width:100%;margin:0 auto}
+  .who{font-size:22px;font-weight:700}
+  .when{font-size:13px;color:var(--soft)}
+  .msgs{background:var(--card);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:38vh;overflow:auto}
+  .m{max-width:88%;padding:10px 12px;border-radius:12px;font-size:17px;line-height:1.35;background:var(--bg);border:1px solid var(--line)}
+  .m.eu{align-self:flex-end;border-color:var(--gold)}
+  .box{border:2px dashed var(--gold);border-radius:16px;padding:14px;min-height:72px;font-size:18px}
+  .box small{display:block;color:var(--soft);font-size:13px;margin-bottom:4px}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  button{font:inherit;font-size:19px;font-weight:700;padding:20px 12px;border-radius:16px;border:0;cursor:pointer;min-height:64px}
+  .b-resp{background:var(--ink);color:#fff;grid-column:1/-1}
+  .b-resp.on{background:var(--gold);color:#1b1b1b}
+  .b-pular{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  .b-ouvir{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  .b-ok{background:var(--gold);color:#1b1b1b;grid-column:1/-1}
+  .hide{display:none}
+  .login{margin:auto;display:flex;flex-direction:column;gap:12px;align-items:center;padding:24px;text-align:center}
+  .login img{width:96px;border-radius:24px}
+  input{font:inherit;font-size:20px;padding:14px;border-radius:12px;border:1px solid var(--line);width:100%;max-width:300px;background:var(--bg);color:var(--ink);text-align:center}
+  .msg{color:var(--soft);text-align:center;padding:30px 10px;font-size:18px}
+  .err{color:var(--danger);font-size:14px}
+</style>
+</head>
+<body>
+<div id="login" class="login hide">
+  <img src="logo.png" alt="">
+  <h2 style="margin:0">Whats Voice</h2>
+  <input id="senha" type="password" placeholder="Senha" autocomplete="current-password">
+  <button class="b-resp" id="entrar" style="max-width:300px;width:100%">Entrar</button>
+  <div id="lerr" class="err"></div>
+</div>
+
+<div id="app" class="hide" style="display:none;flex-direction:column;flex:1">
+  <header>
+    <img src="logo.png" alt="">
+    <h1>Whats Voice</h1>
+    <div class="cnt" id="cnt"></div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<script>
+var URL_SB = "https://cuiqmczhtcrrxafmzmhh.supabase.co";
+var KEY = "sb_publishable_2A36EPYGbgAXMOPj0Up6yg_IxSsYmak";
+var senha = "";
+var atual = null;
+var texto = "";
+var rec = null, ouvindo = false;
+
+function $(id){return document.getElementById(id)}
+function save(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem(k)||""}catch(e){return ""}}
+
+async function rpc(fn, args){
+  var r = await fetch(URL_SB+"/rest/v1/rpc/"+fn,{method:"POST",
+    headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"},
+    body:JSON.stringify(args)});
+  if(!r.ok) throw new Error(await r.text());
+  var t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+function falar(msg, fim){
+  try{
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(msg);
+    u.lang = "pt-BR"; u.rate = 1.25;
+    var vs = speechSynthesis.getVoices().filter(function(v){return /pt[-_]BR/i.test(v.lang)});
+    var m = vs.filter(function(v){return /(felipe|ricardo|daniel|google portugu|male|masc)/i.test(v.name)})[0] || vs[0];
+    if(m) u.voice = m;
+    if(fim) u.onend = fim;
+    speechSynthesis.speak(u);
+  }catch(e){ if(fim) fim(); }
+}
+
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
+
+async function proxima(){
+  var main = $("main");
+  main.innerHTML = '<div class="msg">Buscando a próxima conversa...</div>';
+  try{
+    var d = await rpc("wv_proxima",{p_senha:senha});
+    atual = d; texto = "";
+    $("cnt").textContent = d.restantes ? d.restantes+" na fila" : "";
+    if(d.fim){ main.innerHTML = '<div class="msg">Acabaram as conversas da fila por enquanto.<br>Quando eu trouxer mais, é só abrir de novo.</div>'; falar("Acabaram as conversas da fila."); return; }
+    var ms = (d.mensagens||[]);
+    main.innerHTML =
+      '<div><div class="who">'+esc(d.contato)+'</div><div class="when">'+esc(d.data_ultima||"")+'</div></div>'+
+      '<div class="msgs">'+ms.map(function(m){return '<div class="m'+(m.eu?' eu':'')+'">'+esc(m.t)+'</div>'}).join("")+'</div>'+
+      '<div class="box" id="box"><small>Sua resposta</small><span id="resp">Toque em Responder e fale. Termine dizendo "pronto".</span></div>'+
+      '<div class="btns">'+
+        '<button class="b-resp" id="bresp">Responder</button>'+
+        '<button class="b-ouvir" id="bouvir">Ouvir de novo</button>'+
+        '<button class="b-pular" id="bpular">Pular</button>'+
+        '<button class="b-ok hide" id="bok">Enviar agora</button>'+
+      '</div>';
+    $("bresp").onclick = alternarMic;
+    $("bouvir").onclick = lerAtual;
+    $("bpular").onclick = pular;
+    $("bok").onclick = confirmar;
+    lerAtual();
+  }catch(e){ main.innerHTML='<div class="msg err">Não consegui buscar: '+esc(e.message)+'</div>'; }
+}
+
+function lerAtual(){
+  if(!atual) return;
+  var partes = (atual.mensagens||[]).filter(function(m){return !m.eu}).slice(-4).map(function(m){return m.t});
+  falar(atual.contato+" disse: "+partes.join(". ")+". O que você responde?");
+}
+
+function alternarMic(){
+  if(ouvindo){ if(rec) rec.stop(); return; }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ $("resp").textContent="Este navegador não tem microfone para ditado. Abra no Chrome ou Safari do celular."; return; }
+  try{speechSynthesis.cancel()}catch(e){}
+  rec = new SR(); rec.lang="pt-BR"; rec.continuous=true; rec.interimResults=true;
+  texto="";
+  rec.onstart=function(){ouvindo=true;$("bresp").classList.add("on");$("bresp").textContent="Ouvindo... diga pronto"};
+  rec.onresult=function(ev){
+    var t="";
+    for(var i=0;i<ev.results.length;i++) t+=ev.results[i][0].transcript+" ";
+    texto=t.trim();
+    $("resp").textContent=texto;
+    if(/\bpronto\b[\s.!?]*$/i.test(texto)){
+      texto=texto.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim();
+      $("resp").textContent=texto;
+      rec.stop();
+      $("bok").classList.remove("hide");
+      falar("Você disse: "+texto+". Mando assim?");
+    }
+  };
+  rec.onend=function(){ouvindo=false;$("bresp").classList.remove("on");$("bresp").textContent="Responder de novo";if(texto)$("bok").classList.remove("hide")};
+  rec.onerror=function(){ouvindo=false};
+  rec.start();
+}
+
+async function confirmar(){
+  if(!texto||!atual) return;
+  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:texto}); falar("Anotado. Vou enviar. Próxima."); proxima(); }
+  catch(e){ $("resp").textContent="Erro ao salvar: "+e.message; }
+}
+async function pular(){
+  if(!atual) return;
+  try{ await rpc("wv_pular",{p_senha:senha,p_id:atual.id}); proxima(); }
+  catch(e){ $("resp").textContent="Erro: "+e.message; }
+}
+
+async function entrar(){
+  senha = $("senha").value.trim() || load("wv_senha");
+  try{
+    await rpc("wv_proxima",{p_senha:senha});
+    save("wv_senha",senha);
+    $("login").style.display="none";
+    $("app").style.display="flex";
+    proxima();
+  }catch(e){ $("lerr").textContent="Senha não confere."; }
+}
+$("login").classList.remove("hide");
+$("entrar").onclick = entrar;
+$("senha").addEventListener("keydown",function(e){if(e.key==="Enter")entrar()});
+if(load("wv_senha")){ $("senha").value=load("wv_senha"); entrar(); }
+</script>
+</body>
+</html>
