@@ -88,7 +88,6 @@ function falar(msg, fim){
   }catch(e){ if(fim) fim(); }
 }
 
-function alert_(t){ var c=$('cont'); c.classList.remove('hide'); c.querySelector('span').textContent=t; }
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
 
 async function proxima(){
@@ -100,21 +99,21 @@ async function proxima(){
     $("cnt").textContent = d.restantes ? d.restantes+" na fila" : "";
     if(d.fim){ main.innerHTML = '<div class="msg">Acabaram as conversas da fila por enquanto.<br>Quando eu trouxer mais, é só abrir de novo.</div>'; falar("Acabaram as conversas da fila."); return; }
     var ms = (d.mensagens||[]);
+    baloes=[]; if(silencio){clearTimeout(silencio);silencio=null;}
     main.innerHTML =
       '<div><div class="who">'+esc(d.contato)+'</div><div class="when">'+esc(d.data_ultima||"")+'</div></div>'+
       '<div class="msgs">'+ms.map(function(m){return '<div class="m'+(m.eu?' eu':'')+'">'+esc(m.t)+'</div>'}).join("")+'</div>'+
-      '<div class="when">Toque na caixa, aperte o microfone do teclado, fale e termine dizendo "pronto".</div>'+
-      '<textarea id="campo" rows="5" placeholder="Sua resposta" style="font:inherit;font-size:20px;padding:14px;border-radius:16px;border:2px dashed var(--gold);background:var(--bg);color:var(--ink);width:100%"></textarea>'+
-      '<div class="cont hide" id="cont" style="display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--card);padding:12px 14px;border-radius:14px"><span style="font-size:18px;font-weight:700"></span><button id="bcanc" style="padding:10px 16px;min-height:44px;font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Cancelar</button></div>'+
+      '<div class="msgs hide" id="baloes" style="max-height:30vh"></div>'+
+      '<textarea id="campo" rows="4" placeholder="Toque aqui, use o microfone do teclado e fale" style="font:inherit;font-size:20px;padding:14px;border-radius:16px;border:2px dashed var(--gold);background:var(--bg);color:var(--ink);width:100%"></textarea>'+
+      '<div class="when" id="aviso">Parou de falar por 5 segundos = vira um balão. Pode falar vários.</div>'+
       '<div class="btns">'+
-        '<button class="b-ok hide" id="bok">Enviar agora</button>'+
+        '<button class="b-ok hide" id="bok">Próxima</button>'+
         '<button class="b-ouvir" id="bouvir">Ouvir de novo</button>'+
         '<button class="b-pular" id="bpular">Pular</button>'+
       '</div>';
     $("bouvir").onclick = lerAtual;
     $("bpular").onclick = pular;
     $("bok").onclick = confirmar;
-    $("bcanc").onclick = cancelarEnvio;
     $("campo").oninput = aoMudarCampo;
     lerAtual();
   }catch(e){ main.innerHTML='<div class="msg err">Não consegui buscar: '+esc(e.message)+'</div>'; }
@@ -123,42 +122,40 @@ async function proxima(){
 function lerAtual(){
   if(!atual) return;
   var partes = (atual.mensagens||[]).filter(function(m){return !m.eu}).slice(-4).map(function(m){return m.t});
-  falar(atual.contato+" disse: "+partes.join(". ")+". O que você responde?");
+  falar(atual.contato+" disse: "+partes.join(". ")+".");
 }
 
-var timer=null, cont=0;
-function cancelarEnvio(){ if(timer){clearInterval(timer);timer=null;} var c=$("cont"); if(c) c.classList.add("hide"); }
+var baloes=[], silencio=null;
+var SEP="\n§§\n";
+function desenharBaloes(){
+  var el=$("baloes"); if(!el) return;
+  el.innerHTML=baloes.map(function(t,i){return '<div class="m eu" style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between"><span>'+esc(t)+'</span><b data-i="'+i+'" style="cursor:pointer;padding:0 4px">×</b></div>'}).join("");
+  Array.prototype.forEach.call(el.querySelectorAll("b"),function(b){b.onclick=function(){baloes.splice(+b.getAttribute("data-i"),1);desenharBaloes();atualizarBotao();}});
+  el.classList.toggle("hide",!baloes.length);
+}
+function atualizarBotao(){ var tem=baloes.length||($("campo")&&$("campo").value.trim()); $("bok").classList.toggle("hide",!tem); }
+function fecharBalao(){
+  var v=$("campo").value.trim();
+  if(!v) return;
+  baloes.push(v); $("campo").value=""; desenharBaloes(); atualizarBotao();
+  $("aviso").textContent="Balão "+baloes.length+" guardado. Fale outro ou toque em Próxima.";
+}
 function aoMudarCampo(){
-  var v=$("campo").value;
-  cancelarEnvio();
-  if(/\bpronto\b[\s.!?]*$/i.test(v)){
-    texto=v.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim();
-    $("campo").value=texto;
-    $("campo").blur();
-    if(texto) iniciarContagem();
-    return;
-  }
-  texto=v.trim();
-  $("bok").classList.toggle("hide",!texto);
+  if(silencio) clearTimeout(silencio);
+  atualizarBotao();
+  if($("campo").value.trim()) silencio=setTimeout(fecharBalao,5000);
 }
-function iniciarContagem(){
-  cont=4; var c=$("cont"); c.classList.remove("hide");
-  c.querySelector("span").textContent="Enviando em "+cont+"...";
-  timer=setInterval(function(){
-    cont--; if(cont<=0){ cancelarEnvio(); confirmar(); return; }
-    c.querySelector("span").textContent="Enviando em "+cont+"...";
-  },1000);
-}
-
 async function confirmar(){
-  if(!texto||!atual) return;
-  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:texto}); cancelarEnvio(); falar("Anotado. Próxima."); proxima(); }
-  catch(e){ alert_("Erro ao salvar: "+e.message); }
+  if(silencio){clearTimeout(silencio);silencio=null;}
+  fecharBalao();
+  if(!baloes.length||!atual) return;
+  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:baloes.join(SEP)}); falar("Anotado. Próxima."); proxima(); }
+  catch(e){ $("aviso").textContent="Erro ao salvar: "+e.message; }
 }
 async function pular(){
   if(!atual) return;
   try{ await rpc("wv_pular",{p_senha:senha,p_id:atual.id}); proxima(); }
-  catch(e){ alert_("Erro: "+e.message); }
+  catch(e){ $("aviso").textContent="Erro: "+e.message; }
 }
 
 async function entrar(){
