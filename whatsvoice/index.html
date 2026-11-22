@@ -28,7 +28,7 @@
   .b-pular{background:var(--card);color:var(--ink);border:1px solid var(--line)}
   .b-ouvir{background:var(--card);color:var(--ink);border:1px solid var(--line)}
   .b-ok{background:var(--gold);color:#1b1b1b;grid-column:1/-1}
-  .hide{display:none}
+  .hide{display:none!important}
   .login{margin:auto;display:flex;flex-direction:column;gap:12px;align-items:center;padding:24px;text-align:center}
   .login img{width:96px;border-radius:24px}
   input{font:inherit;font-size:20px;padding:14px;border-radius:12px;border:1px solid var(--line);width:100%;max-width:300px;background:var(--bg);color:var(--ink);text-align:center}
@@ -88,6 +88,7 @@ function falar(msg, fim){
   }catch(e){ if(fim) fim(); }
 }
 
+function alert_(t){ var c=$('cont'); c.classList.remove('hide'); c.querySelector('span').textContent=t; }
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
 
 async function proxima(){
@@ -102,19 +103,19 @@ async function proxima(){
     main.innerHTML =
       '<div><div class="who">'+esc(d.contato)+'</div><div class="when">'+esc(d.data_ultima||"")+'</div></div>'+
       '<div class="msgs">'+ms.map(function(m){return '<div class="m'+(m.eu?' eu':'')+'">'+esc(m.t)+'</div>'}).join("")+'</div>'+
-      '<div class="box" id="box"><small>Sua resposta</small><span id="resp">Toque em Responder e fale. Termine dizendo "pronto".</span></div>'+
-      '<div class="when" id="aviso"></div>'+
-      '<textarea id="campo" rows="3" placeholder="Ou toque aqui e use o microfone do teclado" style="font:inherit;font-size:18px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%"></textarea>'+
+      '<div class="when">Toque na caixa, aperte o microfone do teclado, fale e termine dizendo "pronto".</div>'+
+      '<textarea id="campo" rows="5" placeholder="Sua resposta" style="font:inherit;font-size:20px;padding:14px;border-radius:16px;border:2px dashed var(--gold);background:var(--bg);color:var(--ink);width:100%"></textarea>'+
+      '<div class="cont hide" id="cont" style="display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--card);padding:12px 14px;border-radius:14px"><span style="font-size:18px;font-weight:700"></span><button id="bcanc" style="padding:10px 16px;min-height:44px;font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--line)">Cancelar</button></div>'+
       '<div class="btns">'+
-        '<button class="b-resp" id="bresp">Responder</button>'+
+        '<button class="b-ok hide" id="bok">Enviar agora</button>'+
         '<button class="b-ouvir" id="bouvir">Ouvir de novo</button>'+
         '<button class="b-pular" id="bpular">Pular</button>'+
-        '<button class="b-ok hide" id="bok">Enviar agora</button>'+
       '</div>';
-    $("bresp").onclick = alternarMic;
     $("bouvir").onclick = lerAtual;
     $("bpular").onclick = pular;
-    $("bok").onclick = confirmar; $("campo").oninput = aoMudarCampo;
+    $("bok").onclick = confirmar;
+    $("bcanc").onclick = cancelarEnvio;
+    $("campo").oninput = aoMudarCampo;
     lerAtual();
   }catch(e){ main.innerHTML='<div class="msg err">Não consegui buscar: '+esc(e.message)+'</div>'; }
 }
@@ -125,53 +126,39 @@ function lerAtual(){
   falar(atual.contato+" disse: "+partes.join(". ")+". O que você responde?");
 }
 
-function mostrar(t){ $("resp").textContent=t; var ta=$("campo"); if(ta && ta.value!==t) ta.value=t; }
-function aoMudarCampo(){ texto=$("campo").value.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim(); $("resp").textContent=texto||'Toque em Responder e fale. Termine dizendo "pronto".'; $("bok").classList.toggle("hide",!texto); }
-function alternarMic(){
-  if(ouvindo){ parar=true; try{rec.stop()}catch(e){} return; }
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ $("aviso").textContent="Este navegador não grava voz. Toque na caixa de texto abaixo e use o microfone do teclado do iPhone."; return; }
-  try{speechSynthesis.cancel()}catch(e){}
-  texto=""; parar=false; $("aviso").textContent="Abrindo o microfone...";
-  rec = new SR(); rec.lang="pt-BR"; rec.continuous=false; rec.interimResults=true;
-  var base="";
-  rec.onstart=function(){ouvindo=true;$("bresp").classList.add("on");$("bresp").textContent="Ouvindo... diga pronto";$("aviso").textContent="Pode falar."};
-  rec.onresult=function(ev){
-    var t="";
-    for(var i=0;i<ev.results.length;i++) t+=ev.results[i][0].transcript+" ";
-    var cur=(base+" "+t).trim();
-    mostrar(cur); texto=cur;
-    if(/\bpronto\b[\s.!?]*$/i.test(cur)){
-      texto=cur.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim(); mostrar(texto);
-      parar=true; try{rec.stop()}catch(e){}
-      $("bok").classList.remove("hide");
-    }
-  };
-  rec.onerror=function(e){
-    var m={"not-allowed":"O Safari bloqueou o microfone. Vá em Ajustes > Safari > Microfone e permita, ou toque em AA na barra do endereço > Ajustes do site.","service-not-allowed":"O ditado do iPhone está desligado. Ajustes > Geral > Teclado > Ativar Ditado.","no-speech":"Não ouvi nada. Fale mais perto e toque de novo.","audio-capture":"Não achei o microfone.","network":"Sem internet para o ditado."}[e.error]||("Erro do microfone: "+e.error);
-    if(e.error==="aborted" && tent<2 && !parar){ tent++; $("aviso").textContent="Tentando de novo..."; setTimeout(function(){try{rec.start()}catch(x){}},900); return; }
-    $("aviso").textContent=(e.error==="aborted"?"O iPhone cortou o microfone. Toque na caixa de texto abaixo e use o microfone do teclado.":m); if(e.error!=="no-speech") parar=true;
-  };
-  rec.onend=function(){
-    if(!parar && ouvindo){ base=texto; try{rec.start();return}catch(e){} }
-    ouvindo=false;$("bresp").classList.remove("on");$("bresp").textContent="Responder de novo";
-    if(texto){$("bok").classList.remove("hide"); falar("Você disse: "+texto+". Mando assim?");}
-  };
-  tent=0;
-  var ini=function(){ try{rec.start()}catch(e){ $("aviso").textContent="Não consegui abrir o microfone: "+e.message; } };
-  rec.__ini=ini;
-  setTimeout(ini,700);
+var timer=null, cont=0;
+function cancelarEnvio(){ if(timer){clearInterval(timer);timer=null;} var c=$("cont"); if(c) c.classList.add("hide"); }
+function aoMudarCampo(){
+  var v=$("campo").value;
+  cancelarEnvio();
+  if(/\bpronto\b[\s.!?]*$/i.test(v)){
+    texto=v.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim();
+    $("campo").value=texto;
+    $("campo").blur();
+    if(texto) iniciarContagem();
+    return;
+  }
+  texto=v.trim();
+  $("bok").classList.toggle("hide",!texto);
+}
+function iniciarContagem(){
+  cont=4; var c=$("cont"); c.classList.remove("hide");
+  c.querySelector("span").textContent="Enviando em "+cont+"...";
+  timer=setInterval(function(){
+    cont--; if(cont<=0){ cancelarEnvio(); confirmar(); return; }
+    c.querySelector("span").textContent="Enviando em "+cont+"...";
+  },1000);
 }
 
 async function confirmar(){
   if(!texto||!atual) return;
-  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:texto}); falar("Anotado. Próxima."); proxima(); }
-  catch(e){ $("resp").textContent="Erro ao salvar: "+e.message; }
+  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:texto}); cancelarEnvio(); falar("Anotado. Próxima."); proxima(); }
+  catch(e){ alert_("Erro ao salvar: "+e.message); }
 }
 async function pular(){
   if(!atual) return;
   try{ await rpc("wv_pular",{p_senha:senha,p_id:atual.id}); proxima(); }
-  catch(e){ $("resp").textContent="Erro: "+e.message; }
+  catch(e){ alert_("Erro: "+e.message); }
 }
 
 async function entrar(){
@@ -180,7 +167,7 @@ async function entrar(){
     await rpc("wv_proxima",{p_senha:senha});
     save("wv_senha",senha);
     $("login").style.display="none";
-    $("app").style.display="flex";
+    $("app").classList.remove("hide"); $("app").style.display="flex";
     proxima();
   }catch(e){ $("lerr").textContent="Senha não confere."; }
 }
