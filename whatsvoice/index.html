@@ -110,9 +110,10 @@ async function proxima(){
         '<button class="b-ok hide" id="bok">Próxima</button>'+
         '<button class="b-ouvir" id="bouvir">Ouvir de novo</button>'+
         '<button class="b-pular" id="bpular">Pular</button>'+
+        '<button class="b-pular" id="bnl" style="grid-column:1/-1">Deixar como não lida</button>'+
       '</div>';
     $("bouvir").onclick = lerAtual;
-    $("bpular").onclick = pular;
+    $("bpular").onclick = pular; $("bnl").onclick = naoLida;
     $("bok").onclick = confirmar;
     $("campo").oninput = aoMudarCampo;
     lerAtual();
@@ -151,6 +152,11 @@ async function confirmar(){
   if(!baloes.length||!atual) return;
   try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:baloes.join(SEP)}); falar("Anotado. Próxima."); proxima(); }
   catch(e){ $("aviso").textContent="Erro ao salvar: "+e.message; }
+}
+async function naoLida(){
+  if(!atual) return;
+  try{ await rpc("wv_nao_lida",{p_senha:senha,p_id:atual.id}); falar("Deixei como não lida."); proxima(); }
+  catch(e){ $("aviso").textContent="Erro: "+e.message; }
 }
 async function pular(){
   if(!atual) return;
