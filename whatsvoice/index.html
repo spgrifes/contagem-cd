@@ -5,39 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Whats Voice</title>
 <style>
-  :root{--bg:#fff;--ink:#0B3D2E;--soft:#5b6b64;--gold:#C9A24A;--line:#e6e9e7;--card:#f6f8f7;--danger:#8a2d2d}
-  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1512;--ink:#e8efeb;--soft:#9db0a6;--card:#16221d;--line:#24352e}}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column}
-  header{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--line)}
-  header img{width:44px;height:44px;border-radius:12px}
-  header h1{font-size:20px;margin:0;letter-spacing:.2px}
-  header .cnt{margin-left:auto;font-size:14px;color:var(--soft)}
-  main{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;max-width:640px;width:100%;margin:0 auto}
-  .who{font-size:22px;font-weight:700}
-  .when{font-size:13px;color:var(--soft)}
-  .msgs{background:var(--card);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:38vh;overflow:auto}
-  .m{max-width:88%;padding:10px 12px;border-radius:12px;font-size:17px;line-height:1.35;background:var(--bg);border:1px solid var(--line)}
-  .m.eu{align-self:flex-end;border-color:var(--gold)}
-  .box{border:2px dashed var(--gold);border-radius:16px;padding:14px;min-height:72px;font-size:18px}
-  .box small{display:block;color:var(--soft);font-size:13px;margin-bottom:4px}
-  .btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  button{font:inherit;font-size:19px;font-weight:700;padding:20px 12px;border-radius:16px;border:0;cursor:pointer;min-height:64px}
-  .b-resp{background:var(--ink);color:#fff;grid-column:1/-1}
-  .b-resp.on{background:var(--gold);color:#1b1b1b}
-  .b-pular{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-  .b-ouvir{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-  .b-ok{background:var(--gold);color:#1b1b1b;grid-column:1/-1}
+  :root{--top:#008069;--bg:#efeae2;--in:#ffffff;--out:#d9fdd3;--ink:#111b21;--soft:#667781;--gold:#C9A24A;--line:#d1d7db}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
   .hide{display:none!important}
+  header{background:var(--top);color:#fff;display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px}
+  header img{width:40px;height:40px;border-radius:50%;background:#fff}
+  header .t{display:flex;flex-direction:column;min-width:0}
+  header .n{font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .s{font-size:12px;opacity:.85}
+  header .cnt{margin-left:auto;font-size:13px;background:rgba(255,255,255,.18);padding:4px 10px;border-radius:12px;white-space:nowrap}
+  #chat{flex:1;overflow:auto;padding:14px 12px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+  .m{max-width:82%;padding:8px 10px;border-radius:10px;font-size:17px;line-height:1.35;box-shadow:0 1px .5px rgba(11,20,26,.13);white-space:pre-wrap;word-wrap:break-word}
+  .m.in{align-self:flex-start;background:var(--in);border-top-left-radius:2px}
+  .m.out{align-self:flex-end;background:var(--out);border-top-right-radius:2px;display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+  .m.out b{cursor:pointer;color:var(--soft);padding:0 2px}
+  .dia{align-self:center;background:#fff;color:var(--soft);font-size:12px;padding:4px 10px;border-radius:8px;box-shadow:0 1px .5px rgba(11,20,26,.13)}
+  .vazio{margin:auto;text-align:center;color:var(--soft);font-size:18px;padding:30px}
+  footer{background:#f0f2f5;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
+  #aviso{font-size:13px;color:var(--soft);text-align:center;min-height:16px}
+  #campo{font:inherit;font-size:19px;padding:10px 14px;border-radius:22px;border:0;background:#fff;color:var(--ink);width:100%;resize:none;outline:none}
+  .btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  button{font:inherit;font-size:16px;font-weight:700;padding:14px 8px;border-radius:14px;border:0;cursor:pointer;min-height:52px}
+  .b-resp{background:var(--top);color:#fff;grid-column:1/-1;font-size:19px;min-height:58px}
+  .b-ign{background:#fff;color:#a33;border:1px solid var(--line)}
+  .b-pul{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .b-ouv{background:#fff;color:var(--top);border:1px solid var(--line)}
   .login{margin:auto;display:flex;flex-direction:column;gap:12px;align-items:center;padding:24px;text-align:center}
   .login img{width:96px;border-radius:24px}
-  input{font:inherit;font-size:20px;padding:14px;border-radius:12px;border:1px solid var(--line);width:100%;max-width:300px;background:var(--bg);color:var(--ink);text-align:center}
-  .msg{color:var(--soft);text-align:center;padding:30px 10px;font-size:18px}
-  .err{color:var(--danger);font-size:14px}
+  input{font:inherit;font-size:20px;padding:14px;border-radius:12px;border:1px solid var(--line);width:100%;max-width:300px;background:#fff;color:var(--ink);text-align:center}
+  .err{color:#a33;font-size:14px}
 </style>
 </head>
 <body>
-<div id="login" class="login hide">
+<div id="login" class="login">
   <img src="logo.png" alt="">
   <h2 style="margin:0">Whats Voice</h2>
   <input id="senha" type="password" placeholder="Senha" autocomplete="current-password">
@@ -45,28 +47,37 @@
   <div id="lerr" class="err"></div>
 </div>
 
-<div id="app" class="hide" style="display:none;flex-direction:column;flex:1">
+<div id="app" class="hide" style="flex:1;flex-direction:column;min-height:0">
   <header>
     <img src="logo.png" alt="">
-    <h1>Whats Voice</h1>
+    <div class="t"><div class="n" id="who">Whats Voice</div><div class="s" id="when"></div></div>
     <div class="cnt" id="cnt"></div>
   </header>
-  <main id="main"></main>
+  <div id="chat"></div>
+  <footer id="rodape" class="hide">
+    <div id="aviso">Fale pelo microfone do teclado. Parou 5 segundos = vira um balão.</div>
+    <textarea id="campo" rows="2" placeholder="Mensagem"></textarea>
+    <div class="btns">
+      <button class="b-resp hide" id="bresp">Responder</button>
+      <button class="b-ign" id="bign">Ignorar</button>
+      <button class="b-pul" id="bpul">Pular</button>
+      <button class="b-ouv" id="bouv">Ouvir</button>
+    </div>
+  </footer>
 </div>
 
 <script>
 var URL_SB = "https://cuiqmczhtcrrxafmzmhh.supabase.co";
 var KEY = "sb_publishable_2A36EPYGbgAXMOPj0Up6yg_IxSsYmak";
-var senha = "";
-var atual = null;
-var texto = "";
-var rec = null, ouvindo = false, parar = false, tent = 0;
+var senha = "", atual = null, baloes = [], silencio = null;
+var SEP = "\n§§\n";
 
 function $(id){return document.getElementById(id)}
 function save(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function load(k){try{return localStorage.getItem(k)||""}catch(e){return ""}}
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
 
-async function rpc(fn, args){
+async function rpc(fn,args){
   var r = await fetch(URL_SB+"/rest/v1/rpc/"+fn,{method:"POST",
     headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"},
     body:JSON.stringify(args)});
@@ -75,93 +86,76 @@ async function rpc(fn, args){
   return t ? JSON.parse(t) : null;
 }
 
-function falar(msg, fim){
+function falar(msg){
   try{
     speechSynthesis.cancel();
     var u = new SpeechSynthesisUtterance(msg);
-    u.lang = "pt-BR"; u.rate = 1.25;
+    u.lang="pt-BR"; u.rate=1.25;
     var vs = speechSynthesis.getVoices().filter(function(v){return /pt[-_]BR/i.test(v.lang)});
     var m = vs.filter(function(v){return /(felipe|ricardo|daniel|google portugu|male|masc)/i.test(v.name)})[0] || vs[0];
     if(m) u.voice = m;
-    if(fim) u.onend = fim;
     speechSynthesis.speak(u);
-  }catch(e){ if(fim) fim(); }
+  }catch(e){}
 }
 
-function esc(s){return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
+function desenhar(){
+  var ms = (atual && atual.mensagens) || [];
+  var h = '<div class="dia">'+esc((atual&&atual.data_ultima)||"")+'</div>';
+  h += ms.map(function(m){return '<div class="m '+(m.eu?'out':'in')+'">'+esc(m.t)+'</div>'}).join("");
+  h += baloes.map(function(t,i){return '<div class="m out"><span>'+esc(t)+'</span><b data-i="'+i+'">×</b></div>'}).join("");
+  var c = $("chat"); c.innerHTML = h;
+  Array.prototype.forEach.call(c.querySelectorAll("b"),function(b){b.onclick=function(){baloes.splice(+b.getAttribute("data-i"),1);desenhar();botao();}});
+  c.scrollTop = c.scrollHeight;
+}
+function botao(){ var tem = baloes.length || ($("campo").value.trim()); $("bresp").classList.toggle("hide",!tem); }
+
+function fecharBalao(){
+  var v = $("campo").value.trim();
+  if(!v) return;
+  baloes.push(v); $("campo").value=""; desenhar(); botao();
+  $("aviso").textContent = "Balão "+baloes.length+" guardado. Fale outro ou toque em Responder.";
+}
+function aoMudar(){
+  if(silencio) clearTimeout(silencio);
+  botao();
+  if($("campo").value.trim()) silencio = setTimeout(fecharBalao,5000);
+}
 
 async function proxima(){
-  var main = $("main");
-  main.innerHTML = '<div class="msg">Buscando a próxima conversa...</div>';
+  baloes=[]; if(silencio){clearTimeout(silencio);silencio=null;}
+  $("campo").value=""; $("aviso").textContent="Buscando a próxima conversa...";
   try{
     var d = await rpc("wv_proxima",{p_senha:senha});
-    atual = d; texto = "";
+    atual = d;
     $("cnt").textContent = d.restantes ? d.restantes+" na fila" : "";
-    if(d.fim){ main.innerHTML = '<div class="msg">Acabaram as conversas da fila por enquanto.<br>Quando eu trouxer mais, é só abrir de novo.</div>'; falar("Acabaram as conversas da fila."); return; }
-    var ms = (d.mensagens||[]);
-    baloes=[]; if(silencio){clearTimeout(silencio);silencio=null;}
-    main.innerHTML =
-      '<div><div class="who">'+esc(d.contato)+'</div><div class="when">'+esc(d.data_ultima||"")+'</div></div>'+
-      '<div class="msgs">'+ms.map(function(m){return '<div class="m'+(m.eu?' eu':'')+'">'+esc(m.t)+'</div>'}).join("")+'</div>'+
-      '<div class="msgs hide" id="baloes" style="max-height:30vh"></div>'+
-      '<textarea id="campo" rows="4" placeholder="Toque aqui, use o microfone do teclado e fale" style="font:inherit;font-size:20px;padding:14px;border-radius:16px;border:2px dashed var(--gold);background:var(--bg);color:var(--ink);width:100%"></textarea>'+
-      '<div class="when" id="aviso">Parou de falar por 5 segundos = vira um balão. Pode falar vários.</div>'+
-      '<div class="btns">'+
-        '<button class="b-ok hide" id="bok">Próxima</button>'+
-        '<button class="b-ouvir" id="bouvir">Ouvir de novo</button>'+
-        '<button class="b-pular" id="bpular">Pular</button>'+
-        '<button class="b-pular" id="bnl" style="grid-column:1/-1">Deixar como não lida</button>'+
-      '</div>';
-    $("bouvir").onclick = lerAtual;
-    $("bpular").onclick = pular; $("bnl").onclick = naoLida;
-    $("bok").onclick = confirmar;
-    $("campo").oninput = aoMudarCampo;
-    lerAtual();
-  }catch(e){ main.innerHTML='<div class="msg err">Não consegui buscar: '+esc(e.message)+'</div>'; }
+    if(d.fim){
+      atual=null; $("who").textContent="Whats Voice"; $("when").textContent="";
+      $("chat").innerHTML='<div class="vazio">Acabaram as conversas da fila por enquanto.<br>Quando eu trouxer mais, é só abrir de novo.</div>';
+      $("rodape").classList.add("hide"); falar("Acabaram as conversas da fila."); return;
+    }
+    $("who").textContent = d.contato; $("when").textContent = "toque em Ouvir para escutar";
+    $("rodape").classList.remove("hide");
+    $("aviso").textContent = "Fale pelo microfone do teclado. Parou 5 segundos = vira um balão.";
+    desenhar(); botao(); lerAtual();
+  }catch(e){ $("chat").innerHTML='<div class="vazio err">Não consegui buscar: '+esc(e.message)+'</div>'; }
 }
-
 function lerAtual(){
   if(!atual) return;
   var partes = (atual.mensagens||[]).filter(function(m){return !m.eu}).slice(-4).map(function(m){return m.t});
   falar(atual.contato+" disse: "+partes.join(". ")+".");
 }
 
-var baloes=[], silencio=null;
-var SEP="\n§§\n";
-function desenharBaloes(){
-  var el=$("baloes"); if(!el) return;
-  el.innerHTML=baloes.map(function(t,i){return '<div class="m eu" style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between"><span>'+esc(t)+'</span><b data-i="'+i+'" style="cursor:pointer;padding:0 4px">×</b></div>'}).join("");
-  Array.prototype.forEach.call(el.querySelectorAll("b"),function(b){b.onclick=function(){baloes.splice(+b.getAttribute("data-i"),1);desenharBaloes();atualizarBotao();}});
-  el.classList.toggle("hide",!baloes.length);
+async function acao(fn, fala){
+  if(!atual) return;
+  try{ await rpc(fn,{p_senha:senha,p_id:atual.id}); if(fala) falar(fala); proxima(); }
+  catch(e){ $("aviso").textContent="Erro: "+e.message; }
 }
-function atualizarBotao(){ var tem=baloes.length||($("campo")&&$("campo").value.trim()); $("bok").classList.toggle("hide",!tem); }
-function fecharBalao(){
-  var v=$("campo").value.trim();
-  if(!v) return;
-  baloes.push(v); $("campo").value=""; desenharBaloes(); atualizarBotao();
-  $("aviso").textContent="Balão "+baloes.length+" guardado. Fale outro ou toque em Próxima.";
-}
-function aoMudarCampo(){
-  if(silencio) clearTimeout(silencio);
-  atualizarBotao();
-  if($("campo").value.trim()) silencio=setTimeout(fecharBalao,5000);
-}
-async function confirmar(){
+async function responder(){
   if(silencio){clearTimeout(silencio);silencio=null;}
   fecharBalao();
   if(!baloes.length||!atual) return;
-  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:baloes.join(SEP)}); falar("Anotado. Próxima."); proxima(); }
+  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:baloes.join(SEP)}); falar("Enviando. Próxima."); proxima(); }
   catch(e){ $("aviso").textContent="Erro ao salvar: "+e.message; }
-}
-async function naoLida(){
-  if(!atual) return;
-  try{ await rpc("wv_nao_lida",{p_senha:senha,p_id:atual.id}); falar("Deixei como não lida."); proxima(); }
-  catch(e){ $("aviso").textContent="Erro: "+e.message; }
-}
-async function pular(){
-  if(!atual) return;
-  try{ await rpc("wv_pular",{p_senha:senha,p_id:atual.id}); proxima(); }
-  catch(e){ $("aviso").textContent="Erro: "+e.message; }
 }
 
 async function entrar(){
@@ -169,14 +163,18 @@ async function entrar(){
   try{
     await rpc("wv_proxima",{p_senha:senha});
     save("wv_senha",senha);
-    $("login").style.display="none";
+    $("login").classList.add("hide");
     $("app").classList.remove("hide"); $("app").style.display="flex";
     proxima();
   }catch(e){ $("lerr").textContent="Senha não confere."; }
 }
-$("login").classList.remove("hide");
 $("entrar").onclick = entrar;
 $("senha").addEventListener("keydown",function(e){if(e.key==="Enter")entrar()});
+$("campo").oninput = aoMudar;
+$("bresp").onclick = responder;
+$("bouv").onclick = lerAtual;
+$("bign").onclick = function(){ acao("wv_pular","Ignorada."); };
+$("bpul").onclick = function(){ acao("wv_nao_lida","Deixei para você resolver depois."); };
 if(load("wv_senha")){ $("senha").value=load("wv_senha"); entrar(); }
 </script>
 </body>
