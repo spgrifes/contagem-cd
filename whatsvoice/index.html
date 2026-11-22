@@ -60,7 +60,7 @@ var KEY = "sb_publishable_2A36EPYGbgAXMOPj0Up6yg_IxSsYmak";
 var senha = "";
 var atual = null;
 var texto = "";
-var rec = null, ouvindo = false, parar = false;
+var rec = null, ouvindo = false, parar = false, tent = 0;
 
 function $(id){return document.getElementById(id)}
 function save(k,v){try{localStorage.setItem(k,v)}catch(e){}}
@@ -149,14 +149,18 @@ function alternarMic(){
   };
   rec.onerror=function(e){
     var m={"not-allowed":"O Safari bloqueou o microfone. Vá em Ajustes > Safari > Microfone e permita, ou toque em AA na barra do endereço > Ajustes do site.","service-not-allowed":"O ditado do iPhone está desligado. Ajustes > Geral > Teclado > Ativar Ditado.","no-speech":"Não ouvi nada. Fale mais perto e toque de novo.","audio-capture":"Não achei o microfone.","network":"Sem internet para o ditado."}[e.error]||("Erro do microfone: "+e.error);
-    $("aviso").textContent=m; if(e.error!=="no-speech") parar=true;
+    if(e.error==="aborted" && tent<2 && !parar){ tent++; $("aviso").textContent="Tentando de novo..."; setTimeout(function(){try{rec.start()}catch(x){}},900); return; }
+    $("aviso").textContent=(e.error==="aborted"?"O iPhone cortou o microfone. Toque na caixa de texto abaixo e use o microfone do teclado.":m); if(e.error!=="no-speech") parar=true;
   };
   rec.onend=function(){
     if(!parar && ouvindo){ base=texto; try{rec.start();return}catch(e){} }
     ouvindo=false;$("bresp").classList.remove("on");$("bresp").textContent="Responder de novo";
     if(texto){$("bok").classList.remove("hide"); falar("Você disse: "+texto+". Mando assim?");}
   };
-  try{rec.start()}catch(e){ $("aviso").textContent="Não consegui abrir o microfone: "+e.message; }
+  tent=0;
+  var ini=function(){ try{rec.start()}catch(e){ $("aviso").textContent="Não consegui abrir o microfone: "+e.message; } };
+  rec.__ini=ini;
+  setTimeout(ini,700);
 }
 
 async function confirmar(){
