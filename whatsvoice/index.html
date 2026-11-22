@@ -60,7 +60,7 @@ var KEY = "sb_publishable_2A36EPYGbgAXMOPj0Up6yg_IxSsYmak";
 var senha = "";
 var atual = null;
 var texto = "";
-var rec = null, ouvindo = false;
+var rec = null, ouvindo = false, parar = false;
 
 function $(id){return document.getElementById(id)}
 function save(k,v){try{localStorage.setItem(k,v)}catch(e){}}
@@ -103,6 +103,8 @@ async function proxima(){
       '<div><div class="who">'+esc(d.contato)+'</div><div class="when">'+esc(d.data_ultima||"")+'</div></div>'+
       '<div class="msgs">'+ms.map(function(m){return '<div class="m'+(m.eu?' eu':'')+'">'+esc(m.t)+'</div>'}).join("")+'</div>'+
       '<div class="box" id="box"><small>Sua resposta</small><span id="resp">Toque em Responder e fale. Termine dizendo "pronto".</span></div>'+
+      '<div class="when" id="aviso"></div>'+
+      '<textarea id="campo" rows="3" placeholder="Ou toque aqui e use o microfone do teclado" style="font:inherit;font-size:18px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%"></textarea>'+
       '<div class="btns">'+
         '<button class="b-resp" id="bresp">Responder</button>'+
         '<button class="b-ouvir" id="bouvir">Ouvir de novo</button>'+
@@ -112,7 +114,7 @@ async function proxima(){
     $("bresp").onclick = alternarMic;
     $("bouvir").onclick = lerAtual;
     $("bpular").onclick = pular;
-    $("bok").onclick = confirmar;
+    $("bok").onclick = confirmar; $("campo").oninput = aoMudarCampo;
     lerAtual();
   }catch(e){ main.innerHTML='<div class="msg err">Não consegui buscar: '+esc(e.message)+'</div>'; }
 }
@@ -123,35 +125,43 @@ function lerAtual(){
   falar(atual.contato+" disse: "+partes.join(". ")+". O que você responde?");
 }
 
+function mostrar(t){ $("resp").textContent=t; var ta=$("campo"); if(ta && ta.value!==t) ta.value=t; }
+function aoMudarCampo(){ texto=$("campo").value.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim(); $("resp").textContent=texto||'Toque em Responder e fale. Termine dizendo "pronto".'; $("bok").classList.toggle("hide",!texto); }
 function alternarMic(){
-  if(ouvindo){ if(rec) rec.stop(); return; }
+  if(ouvindo){ parar=true; try{rec.stop()}catch(e){} return; }
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ $("resp").textContent="Este navegador não tem microfone para ditado. Abra no Chrome ou Safari do celular."; return; }
+  if(!SR){ $("aviso").textContent="Este navegador não grava voz. Toque na caixa de texto abaixo e use o microfone do teclado do iPhone."; return; }
   try{speechSynthesis.cancel()}catch(e){}
-  rec = new SR(); rec.lang="pt-BR"; rec.continuous=true; rec.interimResults=true;
-  texto="";
-  rec.onstart=function(){ouvindo=true;$("bresp").classList.add("on");$("bresp").textContent="Ouvindo... diga pronto"};
+  texto=""; parar=false; $("aviso").textContent="Abrindo o microfone...";
+  rec = new SR(); rec.lang="pt-BR"; rec.continuous=false; rec.interimResults=true;
+  var base="";
+  rec.onstart=function(){ouvindo=true;$("bresp").classList.add("on");$("bresp").textContent="Ouvindo... diga pronto";$("aviso").textContent="Pode falar."};
   rec.onresult=function(ev){
     var t="";
     for(var i=0;i<ev.results.length;i++) t+=ev.results[i][0].transcript+" ";
-    texto=t.trim();
-    $("resp").textContent=texto;
-    if(/\bpronto\b[\s.!?]*$/i.test(texto)){
-      texto=texto.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim();
-      $("resp").textContent=texto;
-      rec.stop();
+    var cur=(base+" "+t).trim();
+    mostrar(cur); texto=cur;
+    if(/\bpronto\b[\s.!?]*$/i.test(cur)){
+      texto=cur.replace(/\s*\bpronto\b[\s.!?]*$/i,"").trim(); mostrar(texto);
+      parar=true; try{rec.stop()}catch(e){}
       $("bok").classList.remove("hide");
-      falar("Você disse: "+texto+". Mando assim?");
     }
   };
-  rec.onend=function(){ouvindo=false;$("bresp").classList.remove("on");$("bresp").textContent="Responder de novo";if(texto)$("bok").classList.remove("hide")};
-  rec.onerror=function(){ouvindo=false};
-  rec.start();
+  rec.onerror=function(e){
+    var m={"not-allowed":"O Safari bloqueou o microfone. Vá em Ajustes > Safari > Microfone e permita, ou toque em AA na barra do endereço > Ajustes do site.","service-not-allowed":"O ditado do iPhone está desligado. Ajustes > Geral > Teclado > Ativar Ditado.","no-speech":"Não ouvi nada. Fale mais perto e toque de novo.","audio-capture":"Não achei o microfone.","network":"Sem internet para o ditado."}[e.error]||("Erro do microfone: "+e.error);
+    $("aviso").textContent=m; if(e.error!=="no-speech") parar=true;
+  };
+  rec.onend=function(){
+    if(!parar && ouvindo){ base=texto; try{rec.start();return}catch(e){} }
+    ouvindo=false;$("bresp").classList.remove("on");$("bresp").textContent="Responder de novo";
+    if(texto){$("bok").classList.remove("hide"); falar("Você disse: "+texto+". Mando assim?");}
+  };
+  try{rec.start()}catch(e){ $("aviso").textContent="Não consegui abrir o microfone: "+e.message; }
 }
 
 async function confirmar(){
   if(!texto||!atual) return;
-  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:texto}); falar("Anotado. Vou enviar. Próxima."); proxima(); }
+  try{ await rpc("wv_responder",{p_senha:senha,p_id:atual.id,p_texto:texto}); falar("Anotado. Próxima."); proxima(); }
   catch(e){ $("resp").textContent="Erro ao salvar: "+e.message; }
 }
 async function pular(){
